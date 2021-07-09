@@ -6,6 +6,17 @@
 #include <Adafruit_BMP280.h>
 #include "Adafruit_SHT31.h"
 #include "Adafruit_AMG88xx.h"
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
+#include "wifi_credentials.h"
+
+#ifndef WIFI_CREDENTIALS
+#define WIFI_CREDENTIALS
+#define WIFI_SSID "your-wifi-ssid"
+#define WIFI_PWD "your-wifi-pwd"
+#endif
 
 
 #define MICROS_PER_MS 1000
@@ -14,14 +25,33 @@
 #define DEBOUNCE_MICROS 300 * MICROS_PER_MS
 #define SLEEP_ENABLED true
 
+
+// ASCOM Observing Conditions
+// ==========================
+// Temperature
+// SkyTemperature
+// SkyQuality
+// SkyBrightness
+// RainRate
+// Pressure
+// Humidity
+// DewPoint
+// CloudCover
+// Connected
+//
+// WindSpeed
+// WindGust
+// WindDirection
+// StarFWHM
+// AveragePeriod
+
+
+
 // TODO:
 // - wifi tcp/http connection, response?
 // - serial ascom interface?
 // - rg11
-// - OLED display, sleep/wake
-
-// TwoWire i2c = TwoWire(1);
-
+// - wind sensor
 
 /* TSL2591 Digital Light Sensor */
 /* Dynamic Range: 600M:1 */
@@ -32,9 +62,6 @@ uint16_t luminosity = 0;
 void setupLightSensor() {
   if (!tsl.begin(&Wire, 0x29)) {
     Serial.println("No TSL2591 sensor found...");
-    // Heltec.display -> clear();
-    // Heltec.display -> drawString(0, 0, "No TSL2591 sensor found...");
-    // Heltec.display -> display();
     // TODO: error handling
     while (1) delay(10);
   }
@@ -95,9 +122,6 @@ void setupBMP() {
   bmp = Adafruit_BMP280(&Wire);
   if (!bmp.begin()) {
     Serial.println("No BMP280 sensor found...");
-    // Heltec.display -> clear();
-    // Heltec.display -> drawString(0, 0, "No BMP280 sensor found...");
-    // Heltec.display -> display();
     while (1) delay(10);
   }
 
@@ -156,9 +180,6 @@ float shtHumidity = 0.0;
 void setupTempSensor() {
   if (!sht31.begin(0x44)) {   // Set to 0x45 for alternate i2c addr
     Serial.println("No SHT31 sensor found...");
-    // Heltec.display -> clear();
-    // Heltec.display -> drawString(0, 0, "No SHT31 sensor found...");
-    // Heltec.display -> display();
     while (1) delay(10);
   }
   sht31.heater(false);
@@ -253,6 +274,73 @@ void loopSerial() {
 
 
 
+// Server
+
+const char* ssid = WIFI_SSID;
+const char* password = WIFI_PWD;
+ESP8266WebServer server(80);
+
+void handleNotFound() {
+  String message = "File Not Found\n\n";
+  message += "URI: ";
+  message += server.uri();
+  message += "\nMethod: ";
+  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += "\nArguments: ";
+  message += server.args();
+  message += "\n";
+  for (uint8_t i = 0; i < server.args(); i++) {
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  }
+  server.send(404, "text/plain", message);
+}
+
+void handleRoot() {
+  server.send(200, "text/plain", "hello from esp8266!");
+}
+
+void handleAscomRequest() {
+  String command = server.arg("cmd");
+  if (command.equals(""))
+
+  server.send(200, "text/plain", "hello from esp8266!");
+}
+
+void setupWiFi() {
+  // We start by connecting to a WiFi network
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+  }
+
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  if (MDNS.begin("esp8266")) {
+    Serial.println("MDNS responder started");
+  }
+
+  server.on("/", handleRoot);
+  server.on("/ascom", handleAscomRequest);
+  server.onNotFound(handleNotFound);
+
+  server.begin();
+
+}
+
+void loopWiFi() {
+  server.handleClient();
+  MDNS.update();
+}
+
+
+
+
 
 
 
@@ -267,15 +355,24 @@ void setup() {
   setupBMP();
   setupTempSensor();
   setupCloudSensor();
+  setupWiFi();
   delay(1000);
 }
 
 void loop() {
+  // slow read!
   loopLightSensor();
+  // quick read
   loopBMP();
+  // quick read
   loopTempSensor();
+  // slow read!
   loopCloudSensor();
+  // handle every time
   loopSerial();
+  // handle every time
+  loopWiFi();
+  // TODO: get rid of this delay, use timers for everything
   delay(5000);
 }
 
