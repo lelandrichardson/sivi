@@ -1,9 +1,13 @@
 // SIVI Dome Control
 // =================
+#include <WiFi.h>
+#include "src/Display.h"
+#include "src/SerialCommander.h"
+#include "DomeMotor.h"
+#include "ShutterClient.h"
 
-#include "src/shared/Display.h"
-#include "src/shared/SerialCommander.h"
-#include "src/domectl/DomeMotor.h"
+// WiFiServer server(80);
+
 
 // =======================================================
 // PIN CONFIGURATION
@@ -31,6 +35,7 @@ DomeMotor motor = DomeMotor(
   PIN_DOME_MTR_R_PWM,
   PIN_DOME_MTR_L_PWM
 );
+ShutterClient shutter = ShutterClient();
 
 void setupSerialInterface() {
   Serial.begin(115200);
@@ -77,7 +82,7 @@ void setupSerialInterface() {
   });
   ascom.on(F("SHUTTERSTATUS"), []() {
     // Gets the status of the dome shutter or roof structure.
-    ascom.response(200, "1");
+    ascom.response(200, shutter.statusString());
   });
   ascom.on(F("SLEWING"), []() {
     // true if any part of the dome is currently moving, false if all dome components are 
@@ -96,10 +101,12 @@ void setupSerialInterface() {
   });
   ascom.on(F("OPENSHUTTER"), []() {
     // Open shutter or otherwise expose telescope to the sky.
+    shutter.open();
     ascom.response(200, "1");
   });
   ascom.on(F("CLOSESHUTTER"), []() {
     // Close the shutter or otherwise shield the telescope from the sky.
+    shutter.close();
     ascom.response(200, "1");
   });
   ascom.on(F("FINDHOME"), []() {
@@ -130,6 +137,20 @@ void setupSerialInterface() {
     motor.syncCurrentPositionAsDegrees(azimuth);
     ascom.response(200, "1");
   });
+  
+  ascom.on(F("RESTART"), []() {
+    ascom.response(200, "1");
+    delay(100);
+    esp_restart();
+  });
+  // TODO: routine to find and update "stepsPerDomeRotation"
+  
+  // TODO: update motor configurations
+  // - pid constants
+  // - steps per dome rotation or dome size / wheel size
+  // - minimum error distance
+  // - homePositionInSteps?
+  // - stepsToTrueNorthOffset?
   ascom.onNotFound([]() {
     ascom.response(404, F("UNKNOWN COMMAND"));
   });
@@ -152,6 +173,13 @@ void motorButtonPressed() {
   } else {
     motor.stop();
   }
+}
+
+void setupShutter() {
+  shutter.begin(
+    "ssid",
+    "passphrase"
+  );
 }
 
 void setupDomeMotor() {
@@ -231,12 +259,14 @@ void setup()
 {
   setupDisplay();
   setupSerialInterface();
+  setupShutter();
   setupDomeMotor();
 }
 
 void loop()
 {
   ascom.loop();
+  shutter.loop();
   motor.loop();
   display.loop();
 }

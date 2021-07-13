@@ -1,2 +1,2 @@
 .vscode
-src/shared/wifi_credentials.h
+weather/wifi_credentials.h

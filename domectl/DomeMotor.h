@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <analogWrite.h>
 #include <PID_v1.h>
-#include "../shared/Constants.h"
+#include "src/Constants.h"
 
 
 class DomeMotor {
@@ -36,6 +36,7 @@ class DomeMotor {
     long degreesToSteps(float degrees);
     float stepsToDegrees(long steps);
     long nearestEquivalentSteps(long steps);
+    long equivalentSteps(long steps, long relativeTo, long mod);
     void manualMode();
     void automaticMode();
     boolean isEffectivelyAtPosition(long steps);

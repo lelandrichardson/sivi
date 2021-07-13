@@ -215,7 +215,7 @@ float DomeMotor::stepsToDegrees(long steps) {
   return fractionRotated * 360.0;
 }
 
-long equivalentSteps(long steps, long relativeTo, long mod) {
+long DomeMotor::equivalentSteps(long steps, long relativeTo, long mod) {
   long pos = relativeTo % mod;
   long target = steps % mod;
   long other;

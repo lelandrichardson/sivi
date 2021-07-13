@@ -1,5 +1,6 @@
 #include "Display.h"
 #include "Constants.h"
+#if defined(WIFI_Kit_32)
 
 const unsigned long MICROS_UNTIL_DISPLAY_SLEEP = 30 * MICROS_PER_SEC;
 
@@ -127,3 +128,4 @@ void Display::loop() {
     heltec -> display();
   }
 }
+#endif
