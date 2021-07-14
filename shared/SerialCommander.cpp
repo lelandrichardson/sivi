@@ -78,6 +78,25 @@ void SerialCommander::response(int code, String result) {
   serialResponse(String(serialCommand), code, result);
 }
 
+void SerialCommander::success(String result) {
+  serialResponse(String(serialCommand), 200, result);
+}
+
+void SerialCommander::success(boolean result) {
+  success(String(result));
+}
+
+void SerialCommander::success(float result, int precision) {
+  success(String(result, precision));
+}
+
+void SerialCommander::success(long result) {
+  success(String(result));
+}
+void SerialCommander::success() {
+  success("1");
+}
+
 
 // read serial data and store everything inside of start/end inside of the "serialUnparsed"
 // string.

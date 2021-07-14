@@ -39,6 +39,11 @@ public:
   float argFloat(int i);
   void response(int code);
   void response(int code, String result);
+  void success(String result);
+  void success(boolean result);
+  void success(float result, int precision);
+  void success(long result);
+  void success();
 
 protected:
   static const int SERIAL_COMMAND_MAX_SIZE = 200;

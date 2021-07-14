@@ -6,13 +6,17 @@
 #define READ_FREQ_BMP 500 * MICROS_PER_MS
 #define READ_FREQ_TSL 7 * MICROS_PER_SEC
 #define READ_FREQ_AMG 13 * MICROS_PER_SEC
+#define BUCKET_FREQ_WIND 30 * MICROS_PER_SEC
+
 
 WeatherStation::WeatherStation(
   TwoWire * wireInst,
-  uint8_t rg11Pin
+  uint8_t rg11Pin,
+  uint8_t mdWindPin
 ) : 
   wire(wireInst), 
   pin_rg11(rg11Pin),
+  pin_wind(mdWindPin),
   timeClient(NTPClient(
     ntpUDP,
     "pool.ntp.org", // ntp server
@@ -65,6 +69,14 @@ boolean WeatherStation::begin() {
     error += F("No AMG8833 sensor found...");
     success = false;
   }
+
+  /* Modern Devices Wind Sensor Rev. P */
+  if (!windSensor.begin(
+    pin_wind
+  )) {
+    error += F("Wind Sensor initialization failed...");
+    success = false;
+  }
   return success;
 }
 
@@ -96,7 +108,19 @@ void WeatherStation::loop() {
     amgLastRead = micros();
     amg.readPixels(amgPixels);
   }
+  // cheap enough to run every time
   rg11Value = digitalRead(pin_rg11);
+  // cheap enough to run every time
+  windSensor.loop();
+  if (micros() - windLastBucket > BUCKET_FREQ_WIND) {
+    windLastBucket = micros();
+    for (int i = 0; i < GUST_BUCKETS - 1; i++) {
+      windGusts[i] = windGusts[i + 1];
+    }
+    windGusts[GUST_BUCKETS - 1] = max(windSpeed(), windGusts[GUST_BUCKETS-1]);
+  } else {
+    windGusts[GUST_BUCKETS - 1] = max(windSpeed(), windGusts[GUST_BUCKETS-1]);
+  }
 }
 
 float WeatherStation::percentCloudCover() {
@@ -158,8 +182,16 @@ float WeatherStation::altitude() {
   return bmpAltitude;
 }
 
+float WeatherStation::windGust() {
+  float gust = 0;
+  for (int i = 0; i < GUST_BUCKETS; i++) {
+    gust = max(windGusts[i], gust);
+  }
+  return gust;
+}
+
 float WeatherStation::windSpeed() {
-  return 0;
+  return windSensor.windSpeed(ambientTemperature());
 }
 
 String WeatherStation::boltwoodData() {

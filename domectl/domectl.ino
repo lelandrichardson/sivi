@@ -24,10 +24,10 @@ const uint8_t PIN_DISPLAY_WAKE_SWITCH = 18;
 const uint8_t PIN_MTR_SWITCH_R = 23;
 const uint8_t PIN_MTR_SWITCH_L = 19;
 const uint8_t PIN_SHUTTER_SWITCH = UNASSIGNED;
-const uint8_t PIN_SHUTTER_OPEN_SENSOR = UNASSIGNED;
-const uint8_t PIN_SHUTTER_CLOSED_SENSOR = UNASSIGNED;
 const uint8_t PIN_FIND_HOME_SWITCH = UNASSIGNED;
 
+const uint8_t PIN_SHUTTER_OPEN_SENSOR = UNASSIGNED;
+const uint8_t PIN_SHUTTER_CLOSED_SENSOR = UNASSIGNED;
 
 Display display = Display();
 SerialCommander ascom = SerialCommander();
@@ -42,6 +42,10 @@ void setupSerialInterface() {
   while (!Serial);
   ascom.begin();
 
+  ascom.on(F("NAME"), []() {
+    ascom.success("domectl");
+  });
+
   ascom.on(F("ATHOME"), []() {
     // true when the dome is in the home position. Raises an error if not supported. 
     // 
@@ -52,95 +56,74 @@ void setupSerialInterface() {
     // passes through the home position and the dome controller hardware is capable of 
     // detecting that; or at the end of a slew operation if the dome comes to rest at the 
     // home position.  
-    boolean home = motor.isHome();
-    if (home) {
-      ascom.response(200, "1");
-    } else {
-      ascom.response(200, "0");
-    }
+    ascom.success(motor.isHome());
   });
   ascom.on(F("ATPARK"), []() {
     // true if the dome is in the programmed park position.
-    boolean parked = motor.isParked();
-    if (parked) {
-      ascom.response(200, "1");
-    } else {
-      ascom.response(200, "0");
-    }
+    ascom.success(motor.isParked());
   });
   ascom.on(F("AZIMUTH"), []() {
     // The dome azimuth (degrees, North zero and increasing clockwise, i.e., 90 East, 
     // 180 South, 270 West). North is true north and not magnetic north.
-    float azimuth = motor.getPositionInDegrees();
-    ascom.response(200, String(azimuth, 3));
-  });
-  ascom.on(F("CONNECTED"), []() {
-    // Set true to connect to the device hardware. Set false to disconnect from the device 
-    // hardware. You can also read the property to check whether it is connected. This 
-    // reports the current hardware state. 
-    ascom.response(200, "1");
+    ascom.success(motor.getPositionInDegrees(), 3);
   });
   ascom.on(F("SHUTTERSTATUS"), []() {
     // Gets the status of the dome shutter or roof structure.
-    ascom.response(200, shutter.statusString());
+    ascom.success(shutter.statusString());
   });
   ascom.on(F("SLEWING"), []() {
     // true if any part of the dome is currently moving, false if all dome components are 
     // stationary. 
     boolean slewing = motor.isSlewing();
-    if (slewing) {
-      ascom.response(200, "1");
-    } else {
-      ascom.response(200, "0");
-    }
+    ascom.success(motor.isSlewing());
   });
   ascom.on(F("ABORTSLEW"), []() {
     // Immediately stops any and all movement.
     motor.stop();
-    ascom.response(200, "1");
+    ascom.success();
   });
   ascom.on(F("OPENSHUTTER"), []() {
     // Open shutter or otherwise expose telescope to the sky.
     shutter.open();
-    ascom.response(200, "1");
+    ascom.success();
   });
   ascom.on(F("CLOSESHUTTER"), []() {
     // Close the shutter or otherwise shield the telescope from the sky.
     shutter.close();
-    ascom.response(200, "1");
+    ascom.success();
   });
   ascom.on(F("FINDHOME"), []() {
     // Start operation to search for the dome home position.
     motor.slewToHome();
-    ascom.response(200, "1");
+    ascom.success();
   });
   ascom.on(F("PARK"), []() {
     // Rotate dome in azimuth to park position.
     motor.slewToPark();
-    ascom.response(200, "1");
+    ascom.success();
   });
   ascom.on(F("SETPARK"), []() {
     // Set the current azimuth position of dome to the park position.
     motor.setPark();
-    ascom.response(200, "1");
+    ascom.success();
   });
   ascom.on(F("SLEWTOAZIMUTH"), []() {
     // Ensure that the requested viewing azimuth is available for observing. The method should 
     // not block and the slew operation should complete asynchronously. 
     float azimuth = ascom.argFloat(0);
     motor.slewTo(azimuth);
-    ascom.response(200, "1");
+    ascom.success();
   });
   ascom.on(F("SYNCTOAZIMUTH"), []() {
     // Synchronize the current position of the dome to the given azimuth.
     float azimuth = ascom.argFloat(0);
     motor.syncCurrentPositionAsDegrees(azimuth);
-    ascom.response(200, "1");
+    ascom.success();
   });
   
   ascom.on(F("RESTART"), []() {
-    ascom.response(200, "1");
-    delay(100);
+    ascom.success();
+    delay(500);
     esp_restart();
   });
   // TODO: routine to find and update "stepsPerDomeRotation"

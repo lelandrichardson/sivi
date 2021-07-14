@@ -12,12 +12,16 @@
 #include <ESP8266mDNS.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
+#include "MDWindSensor.h"
+
+#define GUST_BUCKETS 4
 
 class WeatherStation {
 public:
   WeatherStation(
     TwoWire * wireInst,
-    uint8_t rg11Pin
+    uint8_t rg11Pin,
+    uint8_t mdWindPin
   );
   boolean begin();
   void loop();
@@ -32,11 +36,13 @@ public:
   float pressure();
   float altitude();
   float windSpeed();
+  float windGust();
   String boltwoodData();
   String error = "";
 
 private:
   uint8_t pin_rg11;
+  uint8_t pin_wind;
   boolean rg11Value;
   TwoWire *wire;
   WiFiUDP ntpUDP;
@@ -64,5 +70,10 @@ private:
   float clearAmbientSkyDelta = 15; // initialise delta t for clear sky
   // TODO: make configurable
   float cloudyAmbientSkyDelta = 10; // initialise delta t for cloudy sky
+
+  MDWindSensor windSensor;
+  unsigned long windLastBucket = 0;
+  // 4 buckets for the max speed recorded in 30 seconds (2 minutes total)
+  float windGusts[GUST_BUCKETS] = {0.0, 0.0, 0.0, 0.0};
 
 };
