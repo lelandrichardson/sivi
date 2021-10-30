@@ -46,6 +46,18 @@
 //   [](value) { foo.ki = value; }
 // );
 
+typedef enum AscomRequestProtocol {
+  serial,
+  http
+};
+
+typedef enum AscomRequestType {
+  get,
+  post
+};
+
+// TODO:
+// root puts all properties into json and 
 
 class AscomApi {
 public:
@@ -82,25 +94,35 @@ public:
   void success();
 
 protected:
-  static const int SERIAL_REQUEST_MAX_SIZE = 200;
+  static const int REQUEST_MAX_SIZE = 200;
   void serialEvent();
-  void parseRequest();
+  void parseSerialRequest();
   void serialResponse(String cmd, int code, String result);
-  void addRequestHandler(AscomHandler* handler);
+  
+  void webEvent();
+  void parseWebRequest();
+  void webResponse(String cmd, int code, String result);
+
+  void handleRequest();
   void handleWebNotFound();
 
-#ifdef WIFI_Kit_8
-  ESP8266WebServer *server = nullptr;
-#endif
-
+  void addRequestHandler(AscomHandler* handler);
+  String responseCodeToString(const int code);
+  WiFiServer *server = nullptr;
+  WiFiClient client;
 
   AscomHandler* _firstHandler;
   AscomHandler* _lastHandler;
   AscomMethod _notFoundHandler;
-  char serialUnparsed[SERIAL_REQUEST_MAX_SIZE];
-  char serialRequest[SERIAL_REQUEST_MAX_SIZE];
-  char serialArguments[SERIAL_REQUEST_MAX_SIZE];
-  boolean pendingSerialRequest;
+
+  AscomRequestProtocol requestProtocol;
+  AscomRequestType requestType;
+  boolean serialRequestStarted = false;
+  boolean webRequestStarted = false;
+  boolean requestFulfilled = false;
+  char unparsedRequest[REQUEST_MAX_SIZE];
+  char requestTarget[REQUEST_MAX_SIZE];
+  char requestArguments[REQUEST_MAX_SIZE];
 };
 
 #endif

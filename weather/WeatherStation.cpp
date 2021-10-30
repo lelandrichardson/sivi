@@ -117,7 +117,7 @@ void WeatherStation::loop() {
     for (int i = 0; i < GUST_BUCKETS - 1; i++) {
       windGusts[i] = windGusts[i + 1];
     }
-    windGusts[GUST_BUCKETS - 1] = max(windSpeed(), windGusts[GUST_BUCKETS-1]);
+    windGusts[GUST_BUCKETS - 1] = windSpeed();
   } else {
     windGusts[GUST_BUCKETS - 1] = max(windSpeed(), windGusts[GUST_BUCKETS-1]);
   }

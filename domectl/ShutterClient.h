@@ -26,6 +26,6 @@ private:
   ShutterStatus desiredStatus;
   boolean isConnected;
   WiFiMulti wifi;
-  WifiClient statusClient;
-  WifiClient cmdClient;
+  // WifiClient statusClient;
+  // WifiClient cmdClient;
 };
