@@ -40,7 +40,7 @@ public:
   void response(int code);
   void response(int code, String result);
   void success(String result);
-  void success(boolean result);
+  void success(int result);
   void success(float result, int precision);
   void success(long result);
   void success();

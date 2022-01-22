@@ -6,13 +6,14 @@
 #include <Adafruit_BMP280.h>
 #include "Adafruit_SHT31.h"
 #include "Adafruit_AMG88xx.h"
-#include <ESP8266WiFi.h>
-#include <WiFiClient.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
+#include "MDWindSensor.h"
+
+// #include <ESP8266WiFi.h>
+// #include <WiFiClient.h>
+// #include <ESP8266WebServer.h>
+// #include <ESP8266mDNS.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
-#include "MDWindSensor.h"
 
 #define GUST_BUCKETS 4
 

@@ -82,7 +82,7 @@ void SerialCommander::success(String result) {
   serialResponse(String(serialCommand), 200, result);
 }
 
-void SerialCommander::success(boolean result) {
+void SerialCommander::success(int result) {
   success(String(result));
 }
 

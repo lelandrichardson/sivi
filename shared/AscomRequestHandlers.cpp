@@ -2,13 +2,18 @@
 #include "AscomApi.h"
 
 void emptyFloatSetter(float value) {}
-void emptyStringSetter(String value) {}
+void emptyStringSetter(char *value) {}
 void emptyIntSetter(int value) {}
 
 AscomFloatPropertyHandler::AscomFloatPropertyHandler(
   const String &name, 
   AscomFloatGetter getter
 ) : AscomHandler(name), _getter(getter), _setter(emptyFloatSetter) {};
+
+AscomIntPropertyHandler::AscomIntPropertyHandler(
+  const String &name, 
+  AscomIntGetter getter
+) : AscomHandler(name), _getter(getter), _setter(emptyIntSetter) {};
 
 AscomStringPropertyHandler::AscomStringPropertyHandler(
   const String &name, 
@@ -19,6 +24,15 @@ AscomStringPropertyHandler::AscomStringPropertyHandler(
 void AscomFloatPropertyHandler::handle(AscomApi *api) {
   if (api->hasArgs()) {
     api->success(_getter(), 8);
+  } else {
+    _setter(api->argFloat(1));
+    api->success();
+  }
+}
+
+void AscomIntPropertyHandler::handle(AscomApi *api) {
+  if (api->hasArgs()) {
+    api->success(_getter());
   } else {
     _setter(api->argFloat(1));
     api->success();

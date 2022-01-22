@@ -12,7 +12,15 @@
 #endif
 
 #ifdef WIFI_Kit_32
-#include <Wifi.h>
+#include <WiFi.h>
+#include <WebServer.h>
+#include <ESPmDNS.h>
+#endif
+
+#ifdef ESP32
+#include <WiFi.h>
+#include <WebServer.h>
+#include <ESPmDNS.h>
 #endif
 
 #ifndef SERIAL_CONSTANTS
@@ -46,12 +54,12 @@
 //   [](value) { foo.ki = value; }
 // );
 
-typedef enum AscomRequestProtocol {
+enum AscomRequestProtocol {
   serial,
   http
 };
 
-typedef enum AscomRequestType {
+enum AscomRequestType {
   get,
   post
 };
@@ -63,8 +71,7 @@ class AscomApi {
 public:
   AscomApi();
   ~AscomApi();
-  boolean begin();
-  boolean begin(char *ssid, char *password);
+  boolean begin(const char *hostname, const char *ssid, const char *password);
   void loop();
 
   void propertyFloat(const String &name, AscomFloatGetter getter);
@@ -88,7 +95,7 @@ public:
   void response(int code);
   void response(int code, String result);
   void success(String result);
-  void success(boolean result);
+  void success(int result);
   void success(float result, int precision);
   void success(long result);
   void success();

@@ -19,13 +19,12 @@ class AscomApi;
 class AscomHandler {
 public:
   AscomHandler(const String &name) : name(name) {};
-  ~AscomHandler() {}
-  AscomHandler* next() { return _next; }
-  void next(AscomHandler* r) { _next = r; }
+  AscomHandler* next() { return nullptr; }
+  void next(AscomHandler* r) {  }
   virtual void handle(AscomApi *api);
   String name;
 private:
-  AscomHandler* _next = nullptr;
+  // AscomHandler* _next = nullptr;
 };
 
 class AscomCommandHandler : public AscomHandler {
@@ -49,6 +48,19 @@ public:
 private:
   AscomFloatGetter _getter;
   AscomFloatSetter _setter;
+};
+
+class AscomIntPropertyHandler : public AscomHandler {
+public:
+  AscomIntPropertyHandler(
+    const String &name, 
+    AscomIntGetter getter, 
+    AscomIntSetter setter) : AscomHandler(name), _getter(getter), _setter(setter) {};
+  AscomIntPropertyHandler(const String &name, AscomIntGetter getter);
+  void handle(AscomApi *api);
+private:
+  AscomIntGetter _getter;
+  AscomIntSetter _setter;
 };
 
 class AscomStringPropertyHandler : public AscomHandler {

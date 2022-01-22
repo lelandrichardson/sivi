@@ -7,27 +7,27 @@ AscomApi::AscomApi() {
 }
 
 AscomApi::~AscomApi() {
-  AscomHandler* handler = _firstHandler;
-  while (handler) {
-    AscomHandler* next = handler->next();
-    delete handler;
-    handler = next;
-  }
+  // AscomHandler* handler = _firstHandler;
+  // while (handler) {
+  //   AscomHandler* next = handler->next();
+  //   delete handler;
+  //   handler = next;
+  // }
 }
 
-boolean AscomApi::begin() {
-  return true;
-}
-boolean AscomApi::begin(char *ssid, char *password) {
-  boolean success = begin();
+boolean AscomApi::begin(const char *hostname, const char *ssid, const char *password) {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
+  MDNS.begin(hostname);
   server = new WiFiServer(80);
   server->begin();
-  return success;
+  return true;
 }
 
 void AscomApi::loop() {
+  #ifdef WIFI_Kit_8
+  MDNS.update();
+  #endif
   serialEvent();
   webEvent();
 }
@@ -63,7 +63,8 @@ void AscomApi::propertyFloat(const String &name, AscomFloatGetter getter, AscomF
 }
 
 void AscomApi::propertyInt(const String &name, AscomIntGetter getter) {
-  addRequestHandler(new AscomIntPropertyHandler(name, getter));
+  AscomIntPropertyHandler* foo = new AscomIntPropertyHandler(name, getter);
+  // this->addRequestHandler(new AscomIntPropertyHandler(name, getter));
 }
 
 void AscomApi::propertyInt(const String &name, AscomIntGetter getter, AscomIntSetter setter) {
@@ -83,7 +84,7 @@ void AscomApi::command(const String &cmd, AscomMethod method) {
 }
 
 void AscomApi::onNotFound(AscomMethod handler) {
-  _notFoundHandler = handler;
+  // _notFoundHandler = handler;
 }
 
 void AscomApi::addRequestHandler(AscomHandler* handler) {
@@ -125,7 +126,7 @@ void AscomApi::success(String result) {
   serialResponse(String(requestTarget), 200, result);
 }
 
-void AscomApi::success(boolean result) {
+void AscomApi::success(int result) {
   success(String(result));
 }
 

@@ -1,57 +1,70 @@
-#include "src/SerialCommander.h"
+// #include "src/SerialCommander.h"
+#include "src/AscomApi.h"
+#include "src/Disk.h"
 #include "Motor.h"
-// TODO:
-// - serial interface, ascom
-// - http interface?
-// - ir sensors, implement boundaries and position finding
-// - store position/min/max in memory
+#include <EEPROM.h>
 
-SerialCommander ascom = SerialCommander();
-Motor motor = Motor();
+#define STEPS 200
+#define MIN_ADDR 0
+#define MAX_ADDR MIN_ADDR + sizeof(int)
 
-void setupSerialInterface() {
-  Serial.begin(115200);
-  while (!Serial);
-  ascom.begin();
 
-  ascom.on(F("NAME"), []() {
-    ascom.success("rotator");
+#ifndef WIFI_CREDENTIALS
+#define WIFI_CREDENTIALS
+#define WIFI_SSID "your-wifi-ssid"
+#define WIFI_PWD "your-wifi-pwd"
+#endif
+
+
+const char *ssid = WIFI_SSID;
+const char *pwd = WIFI_PWD;
+
+AscomApi ascom = AscomApi();
+Motor motor(STEPS, 25, 26, 27, 15);
+
+void setupAscomInterface() {
+  ascom.begin("rotator", ssid, pwd);
+
+  ascom.propertyInt(F("POSITION"), []() {
+    return motor.position();
   });
 
-  ascom.on(F("POSITION"), []() {
-    ascom.success(motor.positioon());
+  ascom.propertyInt(F("ISMOVING"), []() {
+    int moving = 0;
+    if (motor.isMoving()) {
+      moving = 1;
+    }
+    return moving;
   });
 
-  ascom.on(F("ISMOVING"), []() {
-    ascom.success(motor.isMoving());
+  ascom.propertyInt(F("MIN"), []() {
+    return motor.getMin();
+  }, [](int min) {
+    motor.setMin(min);
   });
 
-  ascom.on(F("RANGE"), []() {
-    int min = motor.min();
-    int max = motor.max();
-    ascom.success();
+  ascom.propertyInt(F("MAX"), []() {
+    return motor.getMax();
+  }, [](int max) {
+    motor.setMax(max);
   });
 
-  ascom.on(F("GOTO"), []() {
+  ascom.command(F("GOTO"), []() {
     int position = ascom.argInt(0);
     motor.goTo(position);
-    ascom.success();
   });
 
-  ascom.on(F("STOP"), []() {
+  ascom.command(F("STOP"), []() {
     motor.stop();
-    ascom.success();
   });
 
-  ascom.on(F("SETRANGE"), []() {
-    int min = ascom.argInt(0);
-    int max = ascom.argMax(1);
-    motor.setRange(min, max);
-    ascom.success();
+  ascom.command(F("SAVE"), []() {
+    motor.stop();
+    saveRange();
   });
 
-  ascom.on(F("RESTART"), []() {
-    ascom.success();
+  ascom.command(F("RESTART"), []() {
+    saveRange();
     delay(500);
     esp_restart();
   });
@@ -61,10 +74,32 @@ void setupSerialInterface() {
   });
 }
 
+
+void saveRange() {
+  int min = motor.getMin();
+  int max = motor.getMax();
+  int position = motor.position();
+  writeInt(MIN_ADDR, min - position);
+  writeInt(MAX_ADDR, max - position);
+  EEPROM.commit();
+}
+
+void loadRange() {
+  int min = readInt(MIN_ADDR);
+  int max = readInt(MAX_ADDR);
+  motor.setRange(min, max);
+}
+
 void setup()
 {
-  setupSerialInterface()
-  motor.begin();
+  Serial.begin(115200);
+  while(!Serial) {
+    delay(100);
+  }
+  Serial.println("HELLO WORLD");
+  loadRange();
+  setupAscomInterface();
+  delay(1000);
 }
 
 void loop()
